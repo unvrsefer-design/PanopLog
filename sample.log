@@ -1,0 +1,26 @@
+INFO connecting to redis
+ERROR Failed to connect to redis
+CRITICAL Redis timeout
+INFO retry scheduled
+INFO worker paused
+ERROR Failed to connect to redis
+CRITICAL Redis timeout
+INFO retrying connection
+WARNING attempt 1
+INFO worker stopped
+ERROR Redis down
+ERROR Redis down
+ERROR Redis down
+ERROR Failed to connect to redis
+CRITICAL Redis timeout
+INFO retrying connection
+WARNING attempt 1
+INFO worker stopped
+INFO worker started
+INFO connection ok
+DEBUG cache warmup
+ERROR Failed to connect to redis
+CRITICAL Redis timeout
+Exception while opening socket
+Connection refused by upstream
+FAIL auth check failed

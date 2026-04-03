@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: panoplog-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: panoplog
+      POSTGRES_USER: panoplog
+      POSTGRES_PASSWORD: panoplog
+    volumes:
+      - panoplog_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    build:
+      context: ./backend
+    container_name: panoplog-backend
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql://panoplog:panoplog@postgres:5432/panoplog
+      DISCORD_WEBHOOK_URL: https://discord.com/api/webhooks/1488094623451844719/NMT6sguYN-_S3EaDbssgsJNW29bG7zySSlI-2xW51XXr5y367mAxz8z9PvreVrx9nVkv
+      GOOGLE_CHAT_WEBHOOK_URL: https://chat.googleapis.com/v1/spaces/AAQAvyPzy1Y/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=A1tpPNEhhmmJ-n3jG2txVyXU2dJEQAFuiqrzRq8vf1o
+    ports:
+      - "8001:8001"
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: panoplog-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_BASE: http://backend:8001
+    ports:
+      - "3000:3000"
+
+volumes:
+  panoplog_postgres_data:
