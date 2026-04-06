@@ -58,12 +58,10 @@ export default function IncidentDetail({
     await onAssign();
   };
 
-  const handleFeedbackKeyDown = (
-    e: KeyboardEvent<HTMLTextAreaElement>
-  ) => {
-     if (e.key === "Enter" && !e.shiftKey) {
-       e.preventDefault();
-       void sendFeedback(true);
+  const handleNoteKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      void onCreateNote();
     }
   };
 
@@ -223,11 +221,11 @@ export default function IncidentDetail({
         <h3 className="mb-3 text-lg font-semibold">Notes</h3>
 
         <textarea
-          value={actualFix}
-          onChange={(e) => setActualFix(e.target.value)}
-          onKeyDown={handleFeedbackKeyDown}
+          value={noteText}
+          onChange={(e) => setNoteText(e.target.value)}
+          onKeyDown={handleNoteKeyDown}
           className="w-full rounded-xl border p-3"
-          placeholder="Gerçek çözüm (Enter: işe yaradı olarak gönder, Shift+Enter: yeni satır)"
+          placeholder="Not ekle (Enter: gönder, Shift+Enter: yeni satır)"
         />
 
         <button
