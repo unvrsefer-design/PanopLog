@@ -1,5 +1,6 @@
 "use client";
 
+import { FormEvent, KeyboardEvent } from "react";
 import { IncidentItem } from "@/lib/types";
 
 type Props = {
@@ -52,6 +53,18 @@ export default function IncidentDetail({
   assigning,
   onAssign,
 }: Props) {
+  const handleAssignSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    await onAssign();
+  };
+
+  const handleNoteKeyDown = async (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      await onCreateNote();
+    }
+  };
+
   if (!incident) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-8 text-slate-500">
@@ -155,7 +168,7 @@ export default function IncidentDetail({
           <p className="mb-3 text-sm text-slate-500">Atama yok</p>
         )}
 
-        <div className="flex gap-2">
+        <form className="flex gap-2" onSubmit={handleAssignSubmit}>
           <input
             value={assigneeText}
             onChange={(e) => setAssigneeText(e.target.value)}
@@ -164,13 +177,14 @@ export default function IncidentDetail({
           />
 
           <button
-            onClick={onAssign}
+            type="submit"
+            onClick={(e) => e.stopPropagation()}
             disabled={assigning}
             className="rounded bg-black px-4 py-2 text-white"
           >
             {assigning ? "..." : "Ata"}
           </button>
-        </div>
+        </form>
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -210,8 +224,9 @@ export default function IncidentDetail({
         <textarea
           value={noteText}
           onChange={(e) => setNoteText(e.target.value)}
+          onKeyDown={handleNoteKeyDown}
           className="w-full rounded-xl border p-3"
-          placeholder="Not ekle"
+          placeholder="Not ekle (Ctrl/Cmd + Enter ile gönder)"
         />
 
         <button

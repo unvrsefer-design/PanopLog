@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, KeyboardEvent, useEffect, useMemo, useState } from "react";
 import HeaderBar from "@/components/dashboard/HeaderBar";
 import StatusCards from "@/components/dashboard/StatusCards";
 import IncidentStream from "@/components/dashboard/IncidentStream";
@@ -17,18 +17,12 @@ import {
   register,
   getMe,
 } from "@/lib/api";
-import { AnalyzeResponse, IncidentItem } from "@/lib/types";
+import { AnalyzeResponse, IncidentItem, AuthUser } from "@/lib/types";
 import {
   getStoredToken,
   setStoredToken,
   clearStoredToken,
 } from "@/lib/auth";
-
-type AuthUser = {
-  id: number;
-  username: string;
-  created_at?: number;
-};
 
 export default function Home() {
   const [source, setSource] = useState("");
@@ -168,6 +162,11 @@ export default function Home() {
     }
   };
 
+  const handleAuthSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    await handleAuth();
+  };
+
   const handleLogout = () => {
     clearStoredToken();
     setToken(null);
@@ -211,6 +210,20 @@ export default function Home() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAnalyzeSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    await handleAnalyze();
+  };
+
+  const onAnalyzeTextareaKeyDown = async (
+    e: KeyboardEvent<HTMLTextAreaElement>
+  ) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      await handleAnalyze();
     }
   };
 
@@ -385,7 +398,7 @@ export default function Home() {
             Incident platformuna erişmek için oturum aç.
           </p>
 
-          <div className="mt-6 space-y-4">
+          <form className="mt-6 space-y-4" onSubmit={handleAuthSubmit}>
             <input
               value={authUsername}
               onChange={(e) => setAuthUsername(e.target.value)}
@@ -408,7 +421,7 @@ export default function Home() {
             ) : null}
 
             <button
-              onClick={handleAuth}
+              type="submit"
               disabled={authSubmitting}
               className="w-full rounded-2xl bg-slate-900 px-5 py-3 font-medium text-white disabled:opacity-60"
             >
@@ -420,6 +433,7 @@ export default function Home() {
             </button>
 
             <button
+              type="button"
               onClick={() =>
                 setAuthMode((prev) => (prev === "login" ? "register" : "login"))
               }
@@ -429,7 +443,7 @@ export default function Home() {
                 ? "Hesabın yok mu? Kayıt ol"
                 : "Zaten hesabın var mı? Giriş yap"}
             </button>
-          </div>
+          </form>
         </div>
       </main>
     );
@@ -488,7 +502,7 @@ export default function Home() {
                 </p>
               </div>
 
-              <div className="space-y-4">
+              <form className="space-y-4" onSubmit={handleAnalyzeSubmit}>
                 <input
                   value={source}
                   onChange={(e) => setSource(e.target.value)}
@@ -518,18 +532,19 @@ export default function Home() {
                 <textarea
                   value={logText}
                   onChange={(e) => setLogText(e.target.value)}
-                  placeholder="Log buraya yapıştır..."
+                  onKeyDown={onAnalyzeTextareaKeyDown}
+                  placeholder="Log buraya yapıştır... (Ctrl/Cmd + Enter ile gönder)"
                   className="h-48 w-full rounded-2xl border border-slate-300 bg-white p-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500/40"
                 />
 
                 <button
-                  onClick={handleAnalyze}
+                  type="submit"
                   disabled={loading}
                   className="w-full rounded-2xl bg-[linear-gradient(90deg,#dbeafe,#ffffff)] px-6 py-3 font-semibold text-slate-950 shadow-[0_12px_30px_rgba(59,130,246,0.10)] transition hover:opacity-95 disabled:opacity-60"
                 >
                   {loading ? "Analiz ediliyor..." : "Analiz Et"}
                 </button>
-              </div>
+              </form>
             </div>
 
             <IncidentStream
