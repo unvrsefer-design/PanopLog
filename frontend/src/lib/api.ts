@@ -5,8 +5,7 @@ import {
   AuthResponse,
 } from "@/lib/types";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8001";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
 
 export const mapIncident = (item: any, index: number): IncidentItem => ({
   id: String(item.db_id ?? item.id ?? `${item.created_at}-${index}`),

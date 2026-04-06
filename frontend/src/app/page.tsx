@@ -23,6 +23,7 @@ import {
   setStoredToken,
   clearStoredToken,
 } from "@/lib/auth";
+import { getErrorMessage } from "@/lib/error";
 
 export default function Home() {
   const [source, setSource] = useState("");
@@ -57,6 +58,14 @@ export default function Home() {
   const [authError, setAuthError] = useState("");
   const [authSubmitting, setAuthSubmitting] = useState(false);
 
+  const [globalError, setGlobalError] = useState("");
+
+  useEffect(() => {
+    if (!globalError) return;
+    const timeout = setTimeout(() => setGlobalError(""), 4000);
+    return () => clearTimeout(timeout);
+  }, [globalError]);
+
   const loadIncidents = async (preferredId?: string) => {
     try {
       const items = await fetchIncidents();
@@ -78,6 +87,7 @@ export default function Home() {
       });
     } catch (err) {
       console.error("Incident load error:", err);
+      setGlobalError(getErrorMessage(err));
     }
   };
 
@@ -98,12 +108,15 @@ export default function Home() {
           clearStoredToken();
           setToken(null);
           setCurrentUser(null);
+          setGlobalError("Oturum geçersiz. Tekrar giriş yap.");
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("getMe error:", err);
         clearStoredToken();
         setToken(null);
         setCurrentUser(null);
+        setGlobalError("Oturum süresi doldu. Tekrar giriş yap.");
       })
       .finally(() => {
         setAuthLoading(false);
@@ -156,7 +169,7 @@ export default function Home() {
       }
     } catch (e) {
       console.error("Auth error:", e);
-      setAuthError("Kimlik doğrulama sırasında hata oluştu.");
+      setAuthError(getErrorMessage(e));
     } finally {
       setAuthSubmitting(false);
     }
@@ -206,8 +219,9 @@ export default function Home() {
       console.error("Analyze error:", e);
       setResult({
         success: false,
-        error: "Analiz sırasında hata oluştu.",
+        error: getErrorMessage(e),
       });
+      setGlobalError(getErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -234,6 +248,7 @@ export default function Home() {
       await loadIncidents(selectedIncident.id);
     } catch (e) {
       console.error("Status update error:", e);
+      setGlobalError(getErrorMessage(e));
     } finally {
       setStatusUpdating(false);
     }
@@ -254,6 +269,7 @@ export default function Home() {
       await loadIncidents(selectedIncident.id);
     } catch (e) {
       console.error("Create note error:", e);
+      setGlobalError(getErrorMessage(e));
     } finally {
       setNotesSubmitting(false);
     }
@@ -269,6 +285,7 @@ export default function Home() {
       await loadIncidents(selectedIncident.id);
     } catch (e) {
       console.error("Assign error:", e);
+      setGlobalError(getErrorMessage(e));
     } finally {
       setAssigning(false);
     }
@@ -288,6 +305,7 @@ export default function Home() {
       await loadIncidents(selectedIncident.id);
     } catch (e) {
       console.error("Feedback error:", e);
+      setGlobalError(getErrorMessage(e));
     }
   };
 
@@ -443,6 +461,12 @@ export default function Home() {
             </button>
           </form>
         </div>
+
+        {globalError && (
+          <div className="fixed bottom-4 right-4 z-50 rounded-xl bg-red-500 px-4 py-3 text-white shadow-lg">
+            {globalError}
+          </div>
+        )}
       </main>
     );
   }
@@ -590,6 +614,12 @@ export default function Home() {
             {result.error}
           </div>
         ) : null}
+
+        {globalError && (
+          <div className="fixed bottom-4 right-4 z-50 rounded-xl bg-red-500 px-4 py-3 text-white shadow-lg">
+            {globalError}
+          </div>
+        )}
       </div>
     </main>
   );

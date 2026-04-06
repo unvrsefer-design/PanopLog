@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Header, HTTPException
 
 from schemas import RegisterRequest, LoginRequest
 from services.auth_service import (
@@ -14,6 +14,9 @@ router = APIRouter(prefix="/auth")
 
 @router.post("/register")
 def register(body: RegisterRequest):
+    if len(body.password or "") < 6:
+        raise HTTPException(status_code=400, detail="Password too short")
+
     result = create_user(body.username, body.password)
 
     if not result["success"]:
@@ -25,12 +28,12 @@ def register(body: RegisterRequest):
     token = generate_token(body.username)
 
     return {
-        "success": True,
-        "user": {
-            "id": result["user_id"],
-            "username": body.username,
-        },
-        "token": token,
+      "success": True,
+      "user": {
+          "id": result["user_id"],
+          "username": body.username,
+      },
+      "token": token,
     }
 
 
