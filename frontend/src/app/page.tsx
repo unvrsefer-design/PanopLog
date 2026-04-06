@@ -218,12 +218,10 @@ export default function Home() {
     await handleAnalyze();
   };
 
-  const onAnalyzeTextareaKeyDown = async (
-    e: KeyboardEvent<HTMLTextAreaElement>
-  ) => {
+  const onAnalyzeTextareaKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      await handleAnalyze();
+      void handleAnalyze();
     }
   };
 

@@ -58,10 +58,10 @@ export default function IncidentDetail({
     await onAssign();
   };
 
-  const handleNoteKeyDown = async (e: KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleNoteKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      await onCreateNote();
+      void onCreateNote();
     }
   };
 
@@ -178,7 +178,6 @@ export default function IncidentDetail({
 
           <button
             type="submit"
-            onClick={(e) => e.stopPropagation()}
             disabled={assigning}
             className="rounded bg-black px-4 py-2 text-white"
           >
