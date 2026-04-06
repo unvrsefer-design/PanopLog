@@ -221,7 +221,7 @@ export default function Home() {
   const onAnalyzeTextareaKeyDown = async (
     e: KeyboardEvent<HTMLTextAreaElement>
   ) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       await handleAnalyze();
     }
@@ -533,7 +533,7 @@ export default function Home() {
                   value={logText}
                   onChange={(e) => setLogText(e.target.value)}
                   onKeyDown={onAnalyzeTextareaKeyDown}
-                  placeholder="Log buraya yapıştır... (Ctrl/Cmd + Enter ile gönder)"
+                  placeholder="Log buraya yapıştır... (Enter: gönder, Shift+Enter: yeni satır)"
                   className="h-48 w-full rounded-2xl border border-slate-300 bg-white p-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500/40"
                 />
 

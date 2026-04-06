@@ -59,7 +59,7 @@ export default function IncidentDetail({
   };
 
   const handleNoteKeyDown = async (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       await onCreateNote();
     }
@@ -226,7 +226,7 @@ export default function IncidentDetail({
           onChange={(e) => setNoteText(e.target.value)}
           onKeyDown={handleNoteKeyDown}
           className="w-full rounded-xl border p-3"
-          placeholder="Not ekle (Ctrl/Cmd + Enter ile gönder)"
+          placeholder="Not ekle (Enter: gönder, Shift+Enter: yeni satır)"
         />
 
         <button
