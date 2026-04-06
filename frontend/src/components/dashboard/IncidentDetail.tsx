@@ -53,9 +53,27 @@ export default function IncidentDetail({
   assigning,
   onAssign,
 }: Props) {
+  if (!incident) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-slate-500">
+        Sol taraftan bir incident seç.
+      </div>
+    );
+  }
+
   const handleAssignSubmit = async (e: FormEvent) => {
     e.preventDefault();
     await onAssign();
+  };
+
+  const handleNoteSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    await onCreateNote();
+  };
+
+  const handleFeedbackSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    await sendFeedback(true);
   };
 
   const handleNoteKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -65,13 +83,12 @@ export default function IncidentDetail({
     }
   };
 
-  if (!incident) {
-    return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-slate-500">
-        Sol taraftan bir incident seç.
-      </div>
-    );
-  }
+  const handleFeedbackKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      void sendFeedback(true);
+    }
+  };
 
   return (
     <section className="space-y-6">
@@ -189,52 +206,75 @@ export default function IncidentDetail({
       <div className="rounded-2xl border border-slate-200 bg-white p-4">
         <h3 className="mb-3 text-lg font-semibold">Feedback</h3>
 
-        <textarea
-          value={actualFix}
-          onChange={(e) => setActualFix(e.target.value)}
-          className="w-full rounded-xl border p-3"
-          placeholder="Gerçek çözüm"
-        />
+        {incident.worked !== undefined && incident.worked !== null ? (
+          <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <p className="text-sm text-slate-600">
+              Önceki feedback:{" "}
+              <span className="font-medium text-slate-900">
+                {incident.worked ? "İşe yaradı" : "İşe yaramadı"}
+              </span>
+            </p>
 
-        {!feedbackSent ? (
-          <div className="mt-3 flex gap-2">
-            <button
-              onClick={() => sendFeedback(true)}
-              className="rounded bg-green-500 px-4 py-2 text-white"
-            >
-              ✔ İşe yaradı
-            </button>
-
-            <button
-              onClick={() => sendFeedback(false)}
-              className="rounded bg-red-500 px-4 py-2 text-white"
-            >
-              ✖ İşe yaramadı
-            </button>
+            {incident.actual_fix ? (
+              <p className="mt-2 text-sm text-slate-700">
+                Gerçek çözüm: {incident.actual_fix}
+              </p>
+            ) : null}
           </div>
-        ) : (
-          <p className="mt-2 text-green-500">Kaydedildi</p>
-        )}
+        ) : null}
+
+        <form onSubmit={handleFeedbackSubmit}>
+          <textarea
+            value={actualFix}
+            onChange={(e) => setActualFix(e.target.value)}
+            onKeyDown={handleFeedbackKeyDown}
+            className="w-full rounded-xl border p-3"
+            placeholder="Gerçek çözüm (Enter: İşe yaradı olarak gönder, Shift+Enter: yeni satır)"
+          />
+
+          {!feedbackSent ? (
+            <div className="mt-3 flex gap-2">
+              <button
+                type="submit"
+                className="rounded bg-green-500 px-4 py-2 text-white"
+              >
+                ✔ İşe yaradı
+              </button>
+
+              <button
+                type="button"
+                onClick={() => sendFeedback(false)}
+                className="rounded bg-red-500 px-4 py-2 text-white"
+              >
+                ✖ İşe yaramadı
+              </button>
+            </div>
+          ) : (
+            <p className="mt-2 text-green-500">Kaydedildi</p>
+          )}
+        </form>
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4">
         <h3 className="mb-3 text-lg font-semibold">Notes</h3>
 
-        <textarea
-          value={noteText}
-          onChange={(e) => setNoteText(e.target.value)}
-          onKeyDown={handleNoteKeyDown}
-          className="w-full rounded-xl border p-3"
-          placeholder="Not ekle (Enter: gönder, Shift+Enter: yeni satır)"
-        />
+        <form onSubmit={handleNoteSubmit}>
+          <textarea
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+            onKeyDown={handleNoteKeyDown}
+            className="w-full rounded-xl border p-3"
+            placeholder="Not ekle (Enter: gönder, Shift+Enter: yeni satır)"
+          />
 
-        <button
-          onClick={onCreateNote}
-          disabled={notesSubmitting}
-          className="mt-2 rounded bg-black px-4 py-2 text-white"
-        >
-          {notesSubmitting ? "..." : "Ekle"}
-        </button>
+          <button
+            type="submit"
+            disabled={notesSubmitting}
+            className="mt-2 rounded bg-black px-4 py-2 text-white"
+          >
+            {notesSubmitting ? "..." : "Ekle"}
+          </button>
+        </form>
 
         <div className="mt-4 space-y-3">
           {incident.notes?.length ? (
@@ -266,7 +306,10 @@ export default function IncidentDetail({
                 null;
 
               return (
-                <div key={i} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div
+                  key={i}
+                  className="rounded-xl border border-slate-200 bg-slate-50 p-3"
+                >
                   <div className="text-xs text-slate-500">
                     {new Date(e.created_at * 1000).toLocaleString("tr-TR")}
                   </div>
