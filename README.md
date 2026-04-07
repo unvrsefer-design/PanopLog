@@ -1,0 +1,72 @@
+# 🚨 Panoplog
+
+AI-powered incident detection and response platform built for modern ops teams.
+
+Panoplog ingests logs, analyzes them using AI, detects incidents, deduplicates recurring issues, and provides a real-time dashboard with feedback-driven learning and multi-channel notifications.
+
+---
+
+## ✨ Features
+
+### 🔐 Authentication
+- User registration & login
+- Token-based session management
+- `/auth/me` endpoint for validation
+
+### 📥 Incident Ingestion
+- Log ingestion via API
+- AI-powered analysis (summary, severity, component)
+- Automatic incident creation
+- Semantic + fingerprint-based deduplication
+- Occurrence tracking
+
+### 📊 Dashboard
+- Incident list with filtering (search, severity, status)
+- Detailed incident view
+- Notes, assignment, and status updates
+- Learned fix highlighting
+
+### ⚡ Realtime
+- WebSocket-based updates
+- Instant sync across multiple tabs
+- Debug panel for live event tracking
+
+### 🧠 Learning Loop
+- Feedback collection (worked / not worked)
+- Actual fix storage
+- Reuse of learned fixes
+
+### 🔔 Notifications
+- Discord webhook integration
+- Google Chat webhook integration
+- Triggered on critical incidents & updates
+
+---
+
+## 🧱 Tech Stack
+
+### Frontend
+- Next.js
+- TypeScript
+- Tailwind CSS
+
+### Backend
+- FastAPI
+- SQLite
+- WebSockets
+- Requests (webhooks)
+
+### Infra
+- Docker
+- Docker Compose
+- Railway (deployment)
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/your-username/panoplog.git
+cd panoplog
