@@ -17,15 +17,9 @@ from schemas import (
     IncidentAssignRequest,
 )
 from ai_service import analyze_log_with_ai
-from services.policy_service import (
-    build_source_policy,
-    should_notify,
-)
+from services.policy_service import build_source_policy, should_notify
 from services.learning_service import apply_learned_fix
-from services.dedup_service import (
-    fingerprint,
-    find_semantic_match,
-)
+from services.dedup_service import fingerprint, find_semantic_match
 from services.notification_service import (
     build_new_incident_message,
     build_incident_update_message,
@@ -37,18 +31,23 @@ from services.query_service import (
     get_events_for_incident,
 )
 from services.auth_service import get_current_user_from_authorization
+from services.realtime_service import publish_event
 
 router = APIRouter()
 
 ALLOWED_STATUSES = {"open", "acknowledged", "resolved", "ignored"}
 
 
+# ------------------------
+# INGEST
+# ------------------------
 @router.post("/ingest")
-def ingest(payload: IngestRequest, authorization: str | None = Header(default=None)):
+async def ingest(payload: IngestRequest, authorization: str | None = Header(default=None)):
     current_user = get_current_user_from_authorization(authorization)
     actor = current_user["username"] if current_user else "anonymous"
 
     now = int(time.time())
+
     analysis = analyze_log_with_ai(payload.log_text)
     analysis, used_learned_fix, learned_fix = apply_learned_fix(analysis)
 
@@ -63,6 +62,7 @@ def ingest(payload: IngestRequest, authorization: str | None = Header(default=No
     conn = get_db()
     cur = conn.cursor()
 
+    # --- FINGERPRINT MATCH ---
     execute(
         cur,
         """
@@ -85,6 +85,7 @@ def ingest(payload: IngestRequest, authorization: str | None = Header(default=No
             analysis["summary"],
         )
 
+    # --- DEDUP CASE ---
     if existing or (semantic_existing and semantic_score >= 0.55):
         target = existing if existing else semantic_existing
 
@@ -137,32 +138,17 @@ def ingest(payload: IngestRequest, authorization: str | None = Header(default=No
         add_event(
             target["id"],
             "dedup_hit",
+            {"actor": actor},
+        )
+
+        await publish_event(
+            "incident_updated",
             {
-                "source": payload.source,
-                "severity": analysis["severity"],
-                "occurrence_increment": 1,
-                "mode": "fingerprint" if existing else "semantic",
-                "similarity_score": semantic_score if not existing else 1.0,
-                "used_learned_fix": used_learned_fix,
+                "incident_id": target["id"],
+                "action": "dedup_hit",
                 "actor": actor,
             },
         )
-
-        if used_learned_fix:
-            add_event(
-                target["id"],
-                "learned_fix_applied",
-                {
-                    "component": analysis["component"],
-                    "source": payload.source,
-                    "actual_fix": learned_fix,
-                    "actor": actor,
-                },
-            )
-
-        if should_notify(payload.source, analysis["severity"]):
-            msg = build_incident_update_message(analysis, payload.source, policy)
-            notify_all(msg)
 
         return {
             "success": True,
@@ -171,6 +157,7 @@ def ingest(payload: IngestRequest, authorization: str | None = Header(default=No
             "actor": actor,
         }
 
+    # --- NEW INCIDENT ---
     incident_id = insert_and_get_id(
         cur,
         """
@@ -217,52 +204,30 @@ def ingest(payload: IngestRequest, authorization: str | None = Header(default=No
     conn.commit()
     conn.close()
 
-    add_event(
-        incident_id,
-        "created",
+    add_event(incident_id, "created", {"actor": actor})
+
+    await publish_event(
+        "incident_created",
         {
-            "source": payload.source,
-            "severity": analysis["severity"],
-            "component": analysis["component"],
-            "environment": policy["environment"],
-            "route_target": policy["route_target"],
+            "incident_id": incident_id,
             "actor": actor,
         },
     )
 
-    if used_learned_fix:
-        add_event(
-            incident_id,
-            "learned_fix_applied",
-            {
-                "component": analysis["component"],
-                "source": payload.source,
-                "actual_fix": learned_fix,
-                "actor": actor,
-            },
-        )
-
-    if should_notify(payload.source, analysis["severity"]):
-        msg = build_new_incident_message(analysis, payload.source, policy)
-        notify_all(msg)
-
     return {"success": True, "incident_id": incident_id, "actor": actor}
 
 
+# ------------------------
+# GET INCIDENTS
+# ------------------------
 @router.get("/incidents")
 def incidents():
     conn = get_db()
     cur = conn.cursor()
 
-    execute(
-        cur,
-        """
-        SELECT * FROM incidents
-        ORDER BY last_seen_at DESC
-        """
-    )
-
+    execute(cur, "SELECT * FROM incidents ORDER BY last_seen_at DESC")
     rows = fetchall_dict(cur)
+
     result = []
 
     for r in rows:
@@ -274,25 +239,9 @@ def incidents():
                 "severity": r["severity"],
                 "component": r["component"],
                 "summary": r["summary"],
-                "possible_cause": r["possible_cause"],
-                "first_action": r["first_action"],
-                "likely_fix": r["likely_fix"],
-                "verification_step": r["verification_step"],
-                "risk_note": r["risk_note"],
-                "highlighted_lines": json.loads(r["highlighted_lines"]) if r.get("highlighted_lines") else [],
-                "context_blocks": json.loads(r["context_blocks"]) if r.get("context_blocks") else [],
-                "runbook_steps": json.loads(r["runbook_steps"]) if r.get("runbook_steps") else [],
                 "status": r["status"],
-                "occurrence_count": r["occurrence_count"],
                 "created_at": r["created_at"],
                 "last_seen_at": r["last_seen_at"],
-                "worked": None if r["worked"] is None else bool(r["worked"]),
-                "actual_fix": r["actual_fix"] or "",
-                "assignee": r["assignee"] or "",
-                "source_policy": json.loads(r["source_policy"]) if r.get("source_policy") else {},
-                "similarity_group": r["similarity_group"] or "",
-                "similarity_score": r["similarity_score"] or 0,
-                "used_learned_fix": bool(r["used_learned_fix"]) if r["used_learned_fix"] is not None else False,
                 "notes": get_notes_for_incident(r["id"]),
                 "events": get_events_for_incident(r["id"]),
             }
@@ -302,95 +251,77 @@ def incidents():
     return {"success": True, "items": result}
 
 
+# ------------------------
+# STATUS
+# ------------------------
 @router.patch("/incidents/{incident_id}/status")
-def status(
-    incident_id: int,
-    body: IncidentStatusUpdateRequest,
-    authorization: str | None = Header(default=None),
-):
+async def status(incident_id: int, body: IncidentStatusUpdateRequest):
     if body.status not in ALLOWED_STATUSES:
         return {"success": False, "error": "Invalid status"}
-
-    current_user = get_current_user_from_authorization(authorization)
-    actor = current_user["username"] if current_user else "anonymous"
 
     conn = get_db()
     cur = conn.cursor()
 
     execute(
         cur,
-        """
-        UPDATE incidents
-        SET status = ?
-        WHERE id = ?
-        """,
+        "UPDATE incidents SET status = ? WHERE id = ?",
         (body.status, incident_id),
     )
 
     conn.commit()
     conn.close()
 
-    add_event(
-        incident_id,
-        "status_changed",
+    add_event(incident_id, "status_changed", {"status": body.status})
+
+    await publish_event(
+        "incident_updated",
         {
+            "incident_id": incident_id,
+            "action": "status_changed",
             "status": body.status,
-            "actor": actor,
         },
     )
 
-    return {"success": True, "actor": actor}
+    return {"success": True}
 
 
+# ------------------------
+# ASSIGN
+# ------------------------
 @router.patch("/incidents/{incident_id}/assign")
-def assign_incident(
-    incident_id: int,
-    payload: IncidentAssignRequest,
-    authorization: str | None = Header(default=None),
-):
-    current_user = get_current_user_from_authorization(authorization)
-    actor = current_user["username"] if current_user else "anonymous"
-
-    assignee = payload.assignee.strip()
-
+async def assign_incident(incident_id: int, payload: IncidentAssignRequest):
     conn = get_db()
     cur = conn.cursor()
 
     execute(
         cur,
-        """
-        UPDATE incidents
-        SET assignee = ?
-        WHERE id = ?
-        """,
-        (assignee, incident_id),
+        "UPDATE incidents SET assignee = ? WHERE id = ?",
+        (payload.assignee, incident_id),
     )
 
     conn.commit()
     conn.close()
 
-    add_event(
-        incident_id,
-        "assigned",
+    add_event(incident_id, "assigned", {"assignee": payload.assignee})
+
+    await publish_event(
+        "incident_updated",
         {
-            "assignee": assignee,
-            "actor": actor,
+            "incident_id": incident_id,
+            "action": "assigned",
+            "assignee": payload.assignee,
         },
     )
 
-    return {"success": True, "incident_id": incident_id, "assignee": assignee, "actor": actor}
+    return {"success": True}
 
 
+# ------------------------
+# NOTES
+# ------------------------
 @router.post("/incidents/{incident_id}/notes")
-def note(
-    incident_id: int,
-    body: IncidentNoteCreateRequest,
-    authorization: str | None = Header(default=None),
-):
+async def note(incident_id: int, body: IncidentNoteCreateRequest):
     now = int(time.time())
-
-    current_user = get_current_user_from_authorization(authorization)
-    actor = current_user["username"] if current_user else (body.author or "anonymous")
 
     conn = get_db()
     cur = conn.cursor()
@@ -401,19 +332,20 @@ def note(
         INSERT INTO incident_notes (incident_id, note, author, created_at)
         VALUES (?, ?, ?, ?)
         """,
-        (incident_id, body.note, actor, now),
+        (incident_id, body.note, body.author, now),
     )
 
     conn.commit()
     conn.close()
 
-    add_event(
-        incident_id,
-        "note_added",
+    add_event(incident_id, "note_added", {"note": body.note})
+
+    await publish_event(
+        "incident_updated",
         {
-            "note": body.note,
-            "actor": actor,
+            "incident_id": incident_id,
+            "action": "note_added",
         },
     )
 
-    return {"success": True, "author": actor}
+    return {"success": True}

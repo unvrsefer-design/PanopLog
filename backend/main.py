@@ -12,6 +12,7 @@ from routes.health import router as health_router
 from routes.feedback import router as feedback_router
 from routes.incidents import router as incidents_router
 from routes.auth import router as auth_router
+from routes.realtime import router as realtime_router
 
 app = FastAPI()
 
@@ -27,11 +28,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.on_event("startup")
 def startup():
     init_db()
+
 
 app.include_router(health_router)
 app.include_router(feedback_router)
 app.include_router(incidents_router)
 app.include_router(auth_router)
+app.include_router(realtime_router)

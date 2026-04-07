@@ -5,8 +5,18 @@ import {
   AuthResponse,
 } from "@/lib/types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
+/**
+ * ⚠️ GEÇİCİ HARD-CODE (debug için)
+ * İstersen sonra tekrar env'e döneriz
+ */
+const API_BASE =
+  typeof window !== "undefined" && window.location.hostname !== "localhost"
+    ? "https://panoplog-production.up.railway.app"
+    : "http://127.0.0.1:8001";
 
+/**
+ * Incident mapper
+ */
 export const mapIncident = (item: any, index: number): IncidentItem => ({
   id: String(item.db_id ?? item.id ?? `${item.created_at}-${index}`),
   createdAt: (item.created_at || 0) * 1000,
@@ -38,6 +48,9 @@ export const mapIncident = (item: any, index: number): IncidentItem => ({
     item.used_learned_fix === true || item.used_learned_fix === 1,
 });
 
+/**
+ * Headers builder
+ */
 function buildHeaders(token?: string): HeadersInit {
   return {
     "Content-Type": "application/json",
@@ -45,8 +58,24 @@ function buildHeaders(token?: string): HeadersInit {
   };
 }
 
+/**
+ * Generic fetch wrapper (debug için önemli)
+ */
+async function safeFetch(url: string, options?: RequestInit) {
+  try {
+    const res = await fetch(url, options);
+    return res;
+  } catch (err) {
+    console.error("❌ FETCH ERROR:", url, err);
+    throw new Error("Backend bağlantısı yok (Failed to fetch)");
+  }
+}
+
+/**
+ * INCIDENTS
+ */
 export async function fetchIncidents(): Promise<IncidentItem[]> {
-  const response = await fetch(`${API_BASE}/incidents`, {
+  const response = await safeFetch(`${API_BASE}/incidents`, {
     cache: "no-store",
   });
 
@@ -63,12 +92,15 @@ export async function fetchIncidents(): Promise<IncidentItem[]> {
   return data.items.map(mapIncident);
 }
 
+/**
+ * ANALYZE
+ */
 export async function analyzeIncident(
   source: string,
   logText: string,
   token?: string
 ): Promise<AnalyzeResponse> {
-  const response = await fetch(`${API_BASE}/ingest`, {
+  const response = await safeFetch(`${API_BASE}/ingest`, {
     method: "POST",
     headers: buildHeaders(token),
     body: JSON.stringify({
@@ -84,16 +116,22 @@ export async function analyzeIncident(
   return response.json();
 }
 
+/**
+ * STATUS
+ */
 export async function updateIncidentStatus(
   incidentId: string,
   status: string,
   token?: string
 ) {
-  const response = await fetch(`${API_BASE}/incidents/${incidentId}/status`, {
-    method: "PATCH",
-    headers: buildHeaders(token),
-    body: JSON.stringify({ status }),
-  });
+  const response = await safeFetch(
+    `${API_BASE}/incidents/${incidentId}/status`,
+    {
+      method: "PATCH",
+      headers: buildHeaders(token),
+      body: JSON.stringify({ status }),
+    }
+  );
 
   if (!response.ok) {
     throw new Error("Status güncellenemedi.");
@@ -102,20 +140,26 @@ export async function updateIncidentStatus(
   return response.json();
 }
 
+/**
+ * NOTES
+ */
 export async function createIncidentNote(
   incidentId: string,
   note: string,
   author = "operator",
   token?: string
 ) {
-  const response = await fetch(`${API_BASE}/incidents/${incidentId}/notes`, {
-    method: "POST",
-    headers: buildHeaders(token),
-    body: JSON.stringify({
-      note,
-      author,
-    }),
-  });
+  const response = await safeFetch(
+    `${API_BASE}/incidents/${incidentId}/notes`,
+    {
+      method: "POST",
+      headers: buildHeaders(token),
+      body: JSON.stringify({
+        note,
+        author,
+      }),
+    }
+  );
 
   if (!response.ok) {
     throw new Error("Incident note oluşturulamadı.");
@@ -124,13 +168,16 @@ export async function createIncidentNote(
   return response.json();
 }
 
+/**
+ * FEEDBACK
+ */
 export async function sendFeedback(
   incidentId: string,
   worked: boolean,
   actualFix: string,
   token?: string
 ) {
-  const response = await fetch(`${API_BASE}/feedback`, {
+  const response = await safeFetch(`${API_BASE}/feedback`, {
     method: "POST",
     headers: buildHeaders(token),
     body: JSON.stringify({
@@ -147,16 +194,22 @@ export async function sendFeedback(
   return response.json();
 }
 
+/**
+ * ASSIGN
+ */
 export async function assignIncident(
   incidentId: string,
   assignee: string,
   token?: string
 ) {
-  const response = await fetch(`${API_BASE}/incidents/${incidentId}/assign`, {
-    method: "PATCH",
-    headers: buildHeaders(token),
-    body: JSON.stringify({ assignee }),
-  });
+  const response = await safeFetch(
+    `${API_BASE}/incidents/${incidentId}/assign`,
+    {
+      method: "PATCH",
+      headers: buildHeaders(token),
+      body: JSON.stringify({ assignee }),
+    }
+  );
 
   if (!response.ok) {
     throw new Error("Atama yapılamadı.");
@@ -165,11 +218,14 @@ export async function assignIncident(
   return response.json();
 }
 
+/**
+ * AUTH
+ */
 export async function register(
   username: string,
   password: string
 ): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE}/auth/register`, {
+  const response = await safeFetch(`${API_BASE}/auth/register`, {
     method: "POST",
     headers: buildHeaders(),
     body: JSON.stringify({ username, password }),
@@ -186,7 +242,7 @@ export async function login(
   username: string,
   password: string
 ): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE}/auth/login`, {
+  const response = await safeFetch(`${API_BASE}/auth/login`, {
     method: "POST",
     headers: buildHeaders(),
     body: JSON.stringify({ username, password }),
@@ -200,7 +256,7 @@ export async function login(
 }
 
 export async function getMe(token: string): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE}/auth/me`, {
+  const response = await safeFetch(`${API_BASE}/auth/me`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

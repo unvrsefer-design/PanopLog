@@ -24,6 +24,7 @@ import {
   clearStoredToken,
 } from "@/lib/auth";
 import { getErrorMessage } from "@/lib/error";
+import { connectRealtime } from "@/lib/realtime";
 
 export default function Home() {
   const [source, setSource] = useState("");
@@ -131,12 +132,32 @@ export default function Home() {
   useEffect(() => {
     if (!currentUser) return;
 
-    const interval = setInterval(() => {
-      loadIncidents(selectedIncidentId || undefined);
-    }, 5000);
+    const socket = connectRealtime({
+      onOpen: () => {
+        console.log("🟢 WS connected");
+      },
+      onMessage: (event) => {
+        console.log("📡 WS event:", event);
 
-    return () => clearInterval(interval);
-  }, [selectedIncidentId, currentUser]);
+        if (
+          event.type === "incident_created" ||
+          event.type === "incident_updated"
+        ) {
+          loadIncidents(selectedIncidentId || undefined);
+        }
+      },
+      onClose: () => {
+        console.log("🔴 WS disconnected");
+      },
+      onError: () => {
+        // sessiz geç
+      },
+    });
+
+    return () => {
+      socket.close();
+    };
+  }, [currentUser, selectedIncidentId]);
 
   const handleAuth = async () => {
     if (!authUsername.trim() || !authPassword.trim()) return;
