@@ -11,8 +11,10 @@ async def websocket_endpoint(websocket: WebSocket):
 
     try:
         while True:
-            await websocket.receive_text()
+            message = await websocket.receive_text()
+            print(f"[WS] received from client: {message}")
     except WebSocketDisconnect:
         manager.disconnect(websocket)
-    except Exception:
+    except Exception as e:
+        print(f"[WS] endpoint error: {e}")
         manager.disconnect(websocket)

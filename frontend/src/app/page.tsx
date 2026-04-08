@@ -6,6 +6,7 @@ import StatusCards from "@/components/dashboard/StatusCards";
 import IncidentStream from "@/components/dashboard/IncidentStream";
 import IncidentDetail from "@/components/dashboard/IncidentDetail";
 import OpsPulse from "@/components/dashboard/OpsPulse";
+import DebugPanel from "@/components/dashboard/DebugPanel";
 import {
   analyzeIncident,
   fetchIncidents,
@@ -60,6 +61,8 @@ export default function Home() {
   const [authSubmitting, setAuthSubmitting] = useState(false);
 
   const [globalError, setGlobalError] = useState("");
+  const [wsConnected, setWsConnected] = useState(false);
+  const [recentWsEvents, setRecentWsEvents] = useState<any[]>([]);
 
   useEffect(() => {
     if (!globalError) return;
@@ -109,7 +112,7 @@ export default function Home() {
           clearStoredToken();
           setToken(null);
           setCurrentUser(null);
-          setGlobalError("Oturum geçersiz. Tekrar giriş yap.");
+          setGlobalError("Session invalid. Please login again.");
         }
       })
       .catch((err) => {
@@ -117,7 +120,7 @@ export default function Home() {
         clearStoredToken();
         setToken(null);
         setCurrentUser(null);
-        setGlobalError("Oturum süresi doldu. Tekrar giriş yap.");
+        setGlobalError("Session expired. Please login again.");
       })
       .finally(() => {
         setAuthLoading(false);
@@ -134,23 +137,35 @@ export default function Home() {
 
     const socket = connectRealtime({
       onOpen: () => {
-        console.log("🟢 WS connected");
+        console.log("[WS] connected");
+        setWsConnected(true);
       },
       onMessage: (event) => {
-        console.log("📡 WS event:", event);
+        console.log("[WS] event:", event);
+
+        setRecentWsEvents((prev) =>
+          [
+            {
+              ...event,
+              created_at: Math.floor(Date.now() / 1000),
+            },
+            ...prev,
+          ].slice(0, 20)
+        );
 
         if (
           event.type === "incident_created" ||
           event.type === "incident_updated"
         ) {
-          loadIncidents(selectedIncidentId || undefined);
+          void loadIncidents(selectedIncidentId || undefined);
         }
       },
-      onClose: () => {
-        console.log("🔴 WS disconnected");
-      },
       onError: () => {
-        // sessiz geç
+        setWsConnected(false);
+      },
+      onClose: () => {
+        console.log("[WS] closed");
+        setWsConnected(false);
       },
     });
 
@@ -172,7 +187,7 @@ export default function Home() {
           : await register(authUsername, authPassword);
 
       if (!res?.success || !res?.token) {
-        setAuthError(res?.error || "Kimlik doğrulama başarısız.");
+        setAuthError(res?.error || "Authentication failed.");
         return;
       }
 
@@ -186,7 +201,7 @@ export default function Home() {
         setAuthUsername("");
         setAuthPassword("");
       } else {
-        setAuthError("Kullanıcı bilgisi alınamadı.");
+        setAuthError("Failed to load user information.");
       }
     } catch (e) {
       console.error("Auth error:", e);
@@ -209,6 +224,8 @@ export default function Home() {
     setSelectedIncidentId(null);
     setAuthError("");
     setResult(null);
+    setWsConnected(false);
+    setRecentWsEvents([]);
   };
 
   const handleAnalyze = async () => {
@@ -397,23 +414,23 @@ export default function Home() {
     };
   }, [incidents]);
 
-  const formatTime = (t: number) => new Date(t).toLocaleString("tr-TR");
+  const formatTime = (t: number) => new Date(t).toLocaleString("en-US");
 
   const formatRelative = (t: number) => {
     const diff = Date.now() - t;
     const m = Math.floor(diff / 60000);
-    if (m < 1) return "az önce";
-    if (m < 60) return `${m} dk`;
+    if (m < 1) return "just now";
+    if (m < 60) return `${m} min`;
     const h = Math.floor(m / 60);
-    if (h < 24) return `${h} sa`;
-    return `${Math.floor(h / 24)} gün`;
+    if (h < 24) return `${h} h`;
+    return `${Math.floor(h / 24)} d`;
   };
 
   if (authLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="rounded-2xl border border-slate-200 bg-white px-6 py-5 text-slate-600 shadow-sm">
-          Oturum yükleniyor...
+          Loading session...
         </div>
       </main>
     );
@@ -428,18 +445,18 @@ export default function Home() {
           </p>
 
           <h1 className="text-3xl font-semibold text-slate-900">
-            {authMode === "login" ? "Giriş yap" : "Kayıt ol"}
+            {authMode === "login" ? "Login" : "Register"}
           </h1>
 
           <p className="mt-2 text-sm text-slate-500">
-            Incident platformuna erişmek için oturum aç.
+            Sign in to access the incident platform.
           </p>
 
           <form className="mt-6 space-y-4" onSubmit={handleAuthSubmit}>
             <input
               value={authUsername}
               onChange={(e) => setAuthUsername(e.target.value)}
-              placeholder="Kullanıcı adı"
+              placeholder="Username"
               className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none focus:border-sky-400"
             />
 
@@ -447,7 +464,7 @@ export default function Home() {
               type="password"
               value={authPassword}
               onChange={(e) => setAuthPassword(e.target.value)}
-              placeholder="Şifre"
+              placeholder="Password"
               className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none focus:border-sky-400"
             />
 
@@ -463,10 +480,10 @@ export default function Home() {
               className="w-full rounded-2xl bg-slate-900 px-5 py-3 font-medium text-white disabled:opacity-60"
             >
               {authSubmitting
-                ? "İşleniyor..."
+                ? "Processing..."
                 : authMode === "login"
-                ? "Giriş yap"
-                : "Kayıt ol"}
+                ? "Login"
+                : "Register"}
             </button>
 
             <button
@@ -477,8 +494,8 @@ export default function Home() {
               className="w-full rounded-2xl border border-slate-200 px-5 py-3 text-sm text-slate-700"
             >
               {authMode === "login"
-                ? "Hesabın yok mu? Kayıt ol"
-                : "Zaten hesabın var mı? Giriş yap"}
+                ? "Don't have an account? Register"
+                : "Already have an account? Login"}
             </button>
           </form>
         </div>
@@ -497,14 +514,15 @@ export default function Home() {
       <div className="mx-auto max-w-[1600px] px-6 py-6">
         <div className="mb-4 flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-5 py-3">
           <div className="text-sm text-slate-600">
-            Oturum: <span className="font-medium text-slate-900">{currentUser.username}</span>
+            Session:{" "}
+            <span className="font-medium text-slate-900">{currentUser.username}</span>
           </div>
 
           <button
             onClick={handleLogout}
             className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700"
           >
-            Çıkış yap
+            Logout
           </button>
         </div>
 
@@ -538,10 +556,10 @@ export default function Home() {
                   New Analysis
                 </p>
                 <h2 className="text-2xl font-semibold text-slate-900">
-                  Yeni analiz
+                  New analysis
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Kaynak ve log gir, analiz çalışsın, incident otomatik açılsın.
+                  Enter a source and logs, run analysis, and automatically create an incident.
                 </p>
               </div>
 
@@ -549,7 +567,7 @@ export default function Home() {
                 <input
                   value={source}
                   onChange={(e) => setSource(e.target.value)}
-                  placeholder="Kaynak sistem / servis adı"
+                  placeholder="Source system / service name"
                   className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500/40"
                 />
 
@@ -576,7 +594,7 @@ export default function Home() {
                   value={logText}
                   onChange={(e) => setLogText(e.target.value)}
                   onKeyDown={onAnalyzeTextareaKeyDown}
-                  placeholder="Log buraya yapıştır... (Enter: gönder, Shift+Enter: yeni satır)"
+                  placeholder="Paste logs here... (Enter: submit, Shift+Enter: new line)"
                   className="h-48 w-full rounded-2xl border border-slate-300 bg-white p-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500/40"
                 />
 
@@ -585,7 +603,7 @@ export default function Home() {
                   disabled={loading}
                   className="w-full rounded-2xl bg-[linear-gradient(90deg,#dbeafe,#ffffff)] px-6 py-3 font-semibold text-slate-950 shadow-[0_12px_30px_rgba(59,130,246,0.10)] transition hover:opacity-95 disabled:opacity-60"
                 >
-                  {loading ? "Analiz ediliyor..." : "Analiz Et"}
+                  {loading ? "Analyzing..." : "Analyze"}
                 </button>
               </form>
             </div>
@@ -623,11 +641,19 @@ export default function Home() {
             onAssign={handleAssign}
           />
 
-          <OpsPulse
-            incident={selectedIncident}
-            topSources={stats.topSources}
-            topComponents={stats.topComponents}
-          />
+          <div className="space-y-4">
+            <OpsPulse
+              incident={selectedIncident}
+              topSources={stats.topSources}
+              topComponents={stats.topComponents}
+            />
+
+            <DebugPanel
+              wsConnected={wsConnected}
+              selectedIncidentId={selectedIncidentId}
+              events={recentWsEvents}
+            />
+          </div>
         </div>
 
         {result && !result.success ? (

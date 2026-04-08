@@ -1,6 +1,6 @@
 "use client";
 
-type StatusCardsProps = {
+type Props = {
   active: number;
   critical: number;
   high: number;
@@ -11,6 +11,48 @@ type StatusCardsProps = {
   ignoredCount: number;
 };
 
+type CardProps = {
+  label: string;
+  value: number;
+  tone: "slate" | "red" | "orange" | "emerald" | "blue";
+  sublabel?: string;
+};
+
+function toneClass(tone: CardProps["tone"]) {
+  switch (tone) {
+    case "red":
+      return "border-red-200 bg-red-50 text-red-700";
+    case "orange":
+      return "border-orange-200 bg-orange-50 text-orange-700";
+    case "emerald":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    case "blue":
+      return "border-blue-200 bg-blue-50 text-blue-700";
+    default:
+      return "border-slate-200 bg-white text-slate-700";
+  }
+}
+
+function MetricCard({ label, value, tone, sublabel }: CardProps) {
+  return (
+    <div
+      className={`rounded-2xl border p-5 shadow-sm transition ${toneClass(tone)}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.2em] opacity-70">
+            {label}
+          </p>
+          <div className="mt-2 text-3xl font-semibold leading-none">{value}</div>
+          {sublabel ? (
+            <p className="mt-2 text-xs opacity-75">{sublabel}</p>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function StatusCards({
   active,
   critical,
@@ -20,63 +62,36 @@ export default function StatusCards({
   acknowledgedCount,
   resolvedCount,
   ignoredCount,
-}: StatusCardsProps) {
-  const cards = [
-    {
-      title: "Active incidents",
-      value: active,
-      tone: "text-slate-900 bg-white border-slate-200",
-    },
-    {
-      title: "Critical",
-      value: critical,
-      tone: "text-red-700 bg-red-50 border-red-200",
-    },
-    {
-      title: "High",
-      value: high,
-      tone: "text-orange-700 bg-orange-50 border-orange-200",
-    },
-    {
-      title: "Learned fixes",
-      value: learned,
-      tone: "text-emerald-700 bg-emerald-50 border-emerald-200",
-    },
-    {
-      title: "Open",
-      value: openCount,
-      tone: "text-rose-700 bg-rose-50 border-rose-200",
-    },
-    {
-      title: "Acknowledged",
-      value: acknowledgedCount,
-      tone: "text-blue-700 bg-blue-50 border-blue-200",
-    },
-    {
-      title: "Resolved",
-      value: resolvedCount,
-      tone: "text-green-700 bg-green-50 border-green-200",
-    },
-    {
-      title: "Ignored",
-      value: ignoredCount,
-      tone: "text-slate-600 bg-slate-100 border-slate-200",
-    },
-  ];
-
+}: Props) {
   return (
-    <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-      {cards.map((card) => (
-        <div
-          key={card.title}
-          className={`rounded-3xl border p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)] ${card.tone}`}
-        >
-          <p className="text-sm opacity-80">{card.title}</p>
-          <p className="mt-3 text-3xl font-semibold tracking-tight">
-            {card.value}
-          </p>
-        </div>
-      ))}
-    </div>
+    <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <MetricCard
+        label="Active Incidents"
+        value={active}
+        tone="slate"
+        sublabel={`Open: ${openCount} • Ack: ${acknowledgedCount}`}
+      />
+
+      <MetricCard
+        label="Critical"
+        value={critical}
+        tone="red"
+        sublabel="Immediate attention required"
+      />
+
+      <MetricCard
+        label="High Severity"
+        value={high}
+        tone="orange"
+        sublabel={`Resolved: ${resolvedCount} • Ignored: ${ignoredCount}`}
+      />
+
+      <MetricCard
+        label="Learned Fix"
+        value={learned}
+        tone="emerald"
+        sublabel="Past fixes reused automatically"
+      />
+    </section>
   );
 }

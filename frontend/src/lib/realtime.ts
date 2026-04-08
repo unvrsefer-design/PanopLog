@@ -24,6 +24,7 @@ function getWsBase(): string {
 
 export function connectRealtime(handlers: RealtimeHandlers = {}) {
   const wsUrl = getWsBase();
+
   let socket: WebSocket | null = null;
   let pingInterval: ReturnType<typeof setInterval> | null = null;
   let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -42,9 +43,12 @@ export function connectRealtime(handlers: RealtimeHandlers = {}) {
 
   const connect = () => {
     try {
+      console.log("[WS] connecting:", wsUrl);
+
       socket = new WebSocket(wsUrl);
 
       socket.onopen = () => {
+        console.log("[WS] connected");
         handlers.onOpen?.();
 
         pingInterval = setInterval(() => {
@@ -52,27 +56,31 @@ export function connectRealtime(handlers: RealtimeHandlers = {}) {
             try {
               socket.send("ping");
             } catch {
-              // sessiz geç
+              // ignore
             }
           }
         }, 15000);
       };
 
       socket.onmessage = (event) => {
+        console.log("[WS] raw message:", event.data);
+
         try {
           const parsed = JSON.parse(event.data);
+          console.log("[WS] parsed message:", parsed);
           handlers.onMessage?.(parsed);
         } catch {
-          // ping veya parse edilemeyen mesajları sessiz geç
+          // ping vb. parse edilemeyen mesajları sessiz geç
         }
       };
 
       socket.onerror = (event) => {
-        // DEV overlay açmaması için burada console.error YOK
+        console.log("[WS] error");
         handlers.onError?.(event);
       };
 
       socket.onclose = () => {
+        console.log("[WS] closed");
         cleanup();
         handlers.onClose?.();
 
@@ -83,7 +91,7 @@ export function connectRealtime(handlers: RealtimeHandlers = {}) {
         }
       };
     } catch {
-      // bağlantı kurulamazsa sessiz geç ve tekrar dene
+      console.log("[WS] connect failed");
       if (!closedManually) {
         reconnectTimeout = setTimeout(() => {
           connect();

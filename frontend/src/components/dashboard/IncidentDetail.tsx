@@ -56,7 +56,7 @@ export default function IncidentDetail({
   if (!incident) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-8 text-slate-500">
-        Sol taraftan bir incident seç.
+        Select an incident from the left panel.
       </div>
     );
   }
@@ -95,10 +95,11 @@ export default function IncidentDetail({
       {Boolean(incident.used_learned_fix) && (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
           <p className="text-sm font-semibold text-emerald-700">
-            Learned fix kullanıldı
+            Learned fix applied
           </p>
           <p className="mt-1 text-sm text-emerald-700">
-            Bu incident için geçmişte işe yarayan çözüm otomatik uygulandı.
+            A previously successful fix was automatically suggested for this
+            incident.
           </p>
         </div>
       )}
@@ -157,13 +158,13 @@ export default function IncidentDetail({
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card title="Summary" value={incident.summary} />
-        <Card title="First action" value={incident.first_action} />
+        <Card title="First Action" value={incident.first_action} />
         <Card title="Verification" value={incident.verification_step} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card title="Possible cause" value={incident.possible_cause} />
-        <Card title="Likely fix" value={incident.likely_fix} multiline />
+        <Card title="Possible Cause" value={incident.possible_cause} />
+        <Card title="Likely Fix" value={incident.likely_fix} multiline />
       </div>
 
       <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
@@ -176,13 +177,13 @@ export default function IncidentDetail({
 
         {incident.assignee ? (
           <p className="mb-3 text-sm text-slate-600">
-            Atanan:{" "}
+            Assigned to:{" "}
             <span className="font-medium text-slate-900">
               {incident.assignee}
             </span>
           </p>
         ) : (
-          <p className="mb-3 text-sm text-slate-500">Atama yok</p>
+          <p className="mb-3 text-sm text-slate-500">No assignee</p>
         )}
 
         <form className="flex gap-2" onSubmit={handleAssignSubmit}>
@@ -190,7 +191,7 @@ export default function IncidentDetail({
             value={assigneeText}
             onChange={(e) => setAssigneeText(e.target.value)}
             className="w-full rounded-xl border p-3"
-            placeholder="Kime atanacak?"
+            placeholder="Assign to..."
           />
 
           <button
@@ -198,7 +199,7 @@ export default function IncidentDetail({
             disabled={assigning}
             className="rounded bg-black px-4 py-2 text-white"
           >
-            {assigning ? "..." : "Ata"}
+            {assigning ? "Assigning..." : "Assign"}
           </button>
         </form>
       </div>
@@ -209,15 +210,15 @@ export default function IncidentDetail({
         {incident.worked !== undefined && incident.worked !== null ? (
           <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
             <p className="text-sm text-slate-600">
-              Önceki feedback:{" "}
+              Previous feedback:{" "}
               <span className="font-medium text-slate-900">
-                {incident.worked ? "İşe yaradı" : "İşe yaramadı"}
+                {incident.worked ? "Worked" : "Did not work"}
               </span>
             </p>
 
             {incident.actual_fix ? (
               <p className="mt-2 text-sm text-slate-700">
-                Gerçek çözüm: {incident.actual_fix}
+                Actual fix: {incident.actual_fix}
               </p>
             ) : null}
           </div>
@@ -229,7 +230,7 @@ export default function IncidentDetail({
             onChange={(e) => setActualFix(e.target.value)}
             onKeyDown={handleFeedbackKeyDown}
             className="w-full rounded-xl border p-3"
-            placeholder="Gerçek çözüm (Enter: İşe yaradı olarak gönder, Shift+Enter: yeni satır)"
+            placeholder="Actual fix (Enter: submit as worked, Shift+Enter: new line)"
           />
 
           {!feedbackSent ? (
@@ -238,7 +239,7 @@ export default function IncidentDetail({
                 type="submit"
                 className="rounded bg-green-500 px-4 py-2 text-white"
               >
-                ✔ İşe yaradı
+                ✔ Worked
               </button>
 
               <button
@@ -246,11 +247,11 @@ export default function IncidentDetail({
                 onClick={() => sendFeedback(false)}
                 className="rounded bg-red-500 px-4 py-2 text-white"
               >
-                ✖ İşe yaramadı
+                ✖ Did not work
               </button>
             </div>
           ) : (
-            <p className="mt-2 text-green-500">Kaydedildi</p>
+            <p className="mt-2 text-green-500">Saved</p>
           )}
         </form>
       </div>
@@ -264,7 +265,7 @@ export default function IncidentDetail({
             onChange={(e) => setNoteText(e.target.value)}
             onKeyDown={handleNoteKeyDown}
             className="w-full rounded-xl border p-3"
-            placeholder="Not ekle (Enter: gönder, Shift+Enter: yeni satır)"
+            placeholder="Add a note (Enter: submit, Shift+Enter: new line)"
           />
 
           <button
@@ -272,7 +273,7 @@ export default function IncidentDetail({
             disabled={notesSubmitting}
             className="mt-2 rounded bg-black px-4 py-2 text-white"
           >
-            {notesSubmitting ? "..." : "Ekle"}
+            {notesSubmitting ? "Adding..." : "Add Note"}
           </button>
         </form>
 
@@ -282,13 +283,13 @@ export default function IncidentDetail({
               <div key={n.id} className="rounded bg-gray-50 p-3">
                 <div className="text-xs text-gray-500">
                   {n.author} ·{" "}
-                  {new Date(n.created_at * 1000).toLocaleString("tr-TR")}
+                  {new Date(n.created_at * 1000).toLocaleString("en-US")}
                 </div>
                 <div>{n.note}</div>
               </div>
             ))
           ) : (
-            <p className="text-slate-500">Not yok</p>
+            <p className="text-slate-500">No notes yet</p>
           )}
         </div>
       </div>
@@ -311,7 +312,7 @@ export default function IncidentDetail({
                   className="rounded-xl border border-slate-200 bg-slate-50 p-3"
                 >
                   <div className="text-xs text-slate-500">
-                    {new Date(e.created_at * 1000).toLocaleString("tr-TR")}
+                    {new Date(e.created_at * 1000).toLocaleString("en-US")}
                   </div>
 
                   <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -340,7 +341,7 @@ export default function IncidentDetail({
             })}
           </div>
         ) : (
-          <p className="text-slate-500">Event yok</p>
+          <p className="text-slate-500">No events yet</p>
         )}
       </div>
     </section>
