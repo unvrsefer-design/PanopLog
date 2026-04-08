@@ -1,5 +1,14 @@
 # 🚨 Panoplog
 
+<p align="center">
+  <img src="docs/assets/logo.png" width="100%" />
+</p>
+
+<h2 align="center">AI-powered Incident Detection & Realtime Ops Platform</h2>
+
+<p align="center">
+  Detect • Deduplicate • Respond • Learn
+</p>
 AI-powered incident detection and response platform built for modern ops teams.
 
 Panoplog ingests logs, analyzes them using AI, detects incidents, deduplicates recurring issues, and provides a real-time dashboard with feedback-driven learning and multi-channel notifications.
