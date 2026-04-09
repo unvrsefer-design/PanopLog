@@ -76,3 +76,10 @@ Realtime:
 cd backend
 source venv/bin/activate
 python3 -m uvicorn main:app --reload --port 8001
+
+---
+
+## 👤 Author
+
+Sefer  
+GitHub: https://github.com/unvrsefer-design
