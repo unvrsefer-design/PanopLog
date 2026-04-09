@@ -1,81 +1,78 @@
-# 🚨 Panoplog
-
 <p align="center">
   <img src="docs/assets/logo.png" width="100%" />
 </p>
 
-<h2 align="center">AI-powered Incident Detection & Realtime Ops Platform</h2>
+<h1 align="center">Panoplog</h1>
 
 <p align="center">
-  Detect • Deduplicate • Respond • Learn
+  See everything. Miss nothing.
 </p>
-AI-powered incident detection and response platform built for modern ops teams.
 
-Panoplog ingests logs, analyzes them using AI, detects incidents, deduplicates recurring issues, and provides a real-time dashboard with feedback-driven learning and multi-channel notifications.
+<p align="center">
+  AI-powered incident detection, realtime response, and ops dashboard
+</p>
+
+---
+
+## 🚀 Overview
+
+Panoplog is an AI-powered incident management platform.
+
+It analyzes logs, detects incidents, deduplicates recurring issues, and provides real-time operational visibility.
 
 ---
 
 ## ✨ Features
 
-### 🔐 Authentication
-- User registration & login
-- Token-based session management
-- `/auth/me` endpoint for validation
-
-### 📥 Incident Ingestion
-- Log ingestion via API
-- AI-powered analysis (summary, severity, component)
+- AI-powered log analysis
 - Automatic incident creation
-- Semantic + fingerprint-based deduplication
-- Occurrence tracking
-
-### 📊 Dashboard
-- Incident list with filtering (search, severity, status)
-- Detailed incident view
-- Notes, assignment, and status updates
-- Learned fix highlighting
-
-### ⚡ Realtime
-- WebSocket-based updates
-- Instant sync across multiple tabs
-- Debug panel for live event tracking
-
-### 🧠 Learning Loop
-- Feedback collection (worked / not worked)
-- Actual fix storage
-- Reuse of learned fixes
-
-### 🔔 Notifications
-- Discord webhook integration
-- Google Chat webhook integration
-- Triggered on critical incidents & updates
+- Severity classification
+- Deduplication (fingerprint + semantic)
+- Realtime updates via WebSocket
+- Feedback-driven fix learning
+- Notes, assignment, and lifecycle tracking
+- Discord & Google Chat notifications
 
 ---
 
-## 🧱 Tech Stack
+## 📸 Screenshots
 
-### Frontend
+### Login
+![Login](docs/screenshots/login.png)
+
+### Dashboard
+![Dashboard](docs/screenshots/dashboard.png)
+
+### Incident Detail
+![Incident Detail](docs/screenshots/incident-detail.png)
+
+### Debug Panel (Realtime WebSocket Events)
+![Debug](docs/screenshots/debug.png)
+
+---
+
+## 🏗️ Tech Stack
+
+Frontend:
 - Next.js
 - TypeScript
-- Tailwind CSS
+- Tailwind
 
-### Backend
+Backend:
 - FastAPI
 - SQLite
-- WebSockets
-- Requests (webhooks)
+- OpenAI API
 
-### Infra
-- Docker
-- Docker Compose
-- Railway (deployment)
+Realtime:
+- WebSocket
 
 ---
 
-## 🚀 Getting Started
+## ⚙️ Run Locally
 
-### 1. Clone the repo
+### Backend
 
 ```bash
-git clone https://github.com/your-username/panoplog.git
-cd panoplog
+cd backend
+source venv/bin/activate
+python3 -m uvicorn main:app --reload --port 8001

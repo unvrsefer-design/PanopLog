@@ -533,6 +533,14 @@ export default function Home() {
           setSeverityFilter={setSeverityFilter}
           statusTab={statusTab}
           setStatusTab={setStatusTab}
+          selectedIncident={
+            selectedIncident
+              ? {
+                  id: selectedIncident.id,
+                  short_title: selectedIncident.short_title,
+                }
+              : null
+          }    
         />
 
         <div className="mt-6">
