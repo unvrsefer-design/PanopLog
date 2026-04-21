@@ -157,7 +157,7 @@ async def ingest(payload: IngestRequest, authorization: str | None = Header(defa
 
         if should_notify(payload.source, analysis["severity"]):
             msg = build_incident_update_message(analysis, payload.source, policy)
-            notify_all(msg)
+            notify_all(msg, analysis=analysis, source=payload.source)
 
         print(f"[RT] publish incident_updated dedup_hit incident_id={target['id']}")
         await publish_event(
@@ -249,7 +249,7 @@ async def ingest(payload: IngestRequest, authorization: str | None = Header(defa
 
     if should_notify(payload.source, analysis["severity"]):
         msg = build_new_incident_message(analysis, payload.source, policy)
-        notify_all(msg)
+        notify_all(msg, analysis=analysis, source=payload.source)
 
     print(f"[RT] publish incident_created incident_id={incident_id}")
     await publish_event(

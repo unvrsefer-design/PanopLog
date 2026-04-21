@@ -58,6 +58,23 @@ def send_chat(msg: str) -> bool:
     return _post_with_retry(url, payload, "google_chat")
 
 
+def send_nabux(analysis: dict, source: str) -> bool:
+    url = os.getenv("NABUX_WEBHOOK_URL", "").strip()
+
+    if not url:
+        print("[notify] nabux webhook missing")
+        return False
+
+    severity = analysis.get("severity", "medium").lower()
+    payload = {
+        "anomali": analysis.get("short_title", "Bilinmeyen anomali"),
+        "severity": severity,
+        "kaynak": source,
+        "detay": analysis.get("summary", "")
+    }
+    return _post_with_retry(url, payload, "nabux")
+
+
 def build_new_incident_message(analysis: dict, source: str, policy: dict) -> str:
     return f"""🚨 NEW INCIDENT
 
@@ -88,13 +105,15 @@ Occurrence arttı.
 """.strip()
 
 
-def notify_all(msg: str) -> dict[str, bool]:
+def notify_all(msg: str, analysis: dict = None, source: str = "") -> dict[str, bool]:
     discord_ok = send_discord(msg)
     chat_ok = send_chat(msg)
+    nabux_ok = send_nabux(analysis, source) if analysis else False
 
     result = {
         "discord": discord_ok,
         "google_chat": chat_ok,
+        "nabux": nabux_ok,
     }
 
     print(f"[notify] summary={result}")
